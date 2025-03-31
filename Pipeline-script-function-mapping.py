@@ -9,8 +9,8 @@ def find_all_scripts(base_path):
     for root, dirs, files in os.walk(base_path):
         for file in files:
             if any(file.endswith(ext) for ext in SCRIPT_EXTENSIONS):
-                script_path = os.path.join(root, file)
-                script_map[file.lower()] = script_path
+                path = os.path.join(root, file)
+                script_map[file.lower()] = path
     return script_map
 
 def find_postgres_yaml_files(base_path):
@@ -18,19 +18,19 @@ def find_postgres_yaml_files(base_path):
     for root, dirs, files in os.walk(base_path):
         for file in files:
             if file.endswith(".yaml") and "postgres" in file.lower():
-                path = os.path.join(root, file)
+                full_path = os.path.join(root, file)
                 try:
-                    with open(path, "r") as f:
+                    with open(full_path, "r") as f:
                         content = f.read().lower()
                         if "postgres" in content:
-                            matched.append((file, path, content))
+                            matched.append((file, full_path, content))
                 except Exception as e:
-                    print("Could not read YAML file: {0}".format(path))
+                    print("Could not read YAML file: {0}".format(full_path))
     return matched
 
-def extract_script_references(content):
+def extract_script_references(yaml_content):
     scripts = []
-    lines = content.splitlines()
+    lines = yaml_content.splitlines()
     for line in lines:
         for ext in SCRIPT_EXTENSIONS:
             if ext in line:
@@ -41,15 +41,12 @@ def extract_script_references(content):
 
 def build_matrix(pipelines, all_scripts):
     matrix = {}
-
     for script_name in all_scripts.keys():
         matrix[script_name] = {}
-
     for pipeline_name, yaml_path, content in pipelines:
         referenced_scripts = extract_script_references(content)
         for script in matrix:
             matrix[script][pipeline_name] = "✓" if script in referenced_scripts else ""
-
     return matrix
 
 def write_csv(matrix, pipelines, out_file):
@@ -57,16 +54,56 @@ def write_csv(matrix, pipelines, out_file):
     with open(out_file, "w") as f:
         writer = csv.writer(f)
         writer.writerow(["Script File"] + pipeline_names)
-        for script, uses in matrix.items():
+        for script, usage in matrix.items():
             row = [script]
             for name in pipeline_names:
-                row.append(uses.get(name, ""))
+                row.append(usage.get(name, ""))
             writer.writerow(row)
+
+def generate_html_from_csv(csv_file, html_file):
+    with open(csv_file, "r") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    with open(html_file, "w") as f:
+        f.write("<html><head><title>Pipeline-Script Matrix</title>\n")
+        f.write("<style>table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; text-align: center; } th { background-color: #f2f2f2; }</style>\n")
+        f.write("</head><body>\n")
+        f.write("<h2>Pipeline to Script Mapping</h2>\n")
+        f.write("<table>\n")
+
+        for i, row in enumerate(rows):
+            f.write("<tr>")
+            for cell in row:
+                if i == 0:
+                    f.write("<th>{0}</th>".format(cell))
+                else:
+                    if cell.strip() == "✓":
+                        f.write("<td style='color: green; font-weight: bold;'>&#10003;</td>")
+                    else:
+                        f.write("<td>{0}</td>".format(cell))
+            f.write("</tr>\n")
+
+        f.write("</table>\n</body></html>")
 
 if __name__ == "__main__":
     BASE = "."
+
+    print("🔍 Scanning for scripts...")
     all_scripts = find_all_scripts(BASE)
+
+    print("🔍 Searching for postgres pipelines...")
     pipelines = find_postgres_yaml_files(BASE)
+
+    print("⚙️ Building usage matrix...")
     matrix = build_matrix(pipelines, all_scripts)
+
+    print("📄 Writing CSV...")
     write_csv(matrix, pipelines, "pipeline_script_matrix.csv")
-    print("✅ CSV written: pipeline_script_matrix.csv")
+
+    print("🌐 Generating HTML...")
+    generate_html_from_csv("pipeline_script_matrix.csv", "pipeline_script_matrix.html")
+
+    print("\n✅ Done! Files created:")
+    print(" - pipeline_script_matrix.csv")
+    print(" - pipeline_script_matrix.html")
