@@ -31,28 +31,17 @@ def find_postgres_yaml_files(base_path):
 def extract_script_references(yaml_content):
     scripts = []
     lines = yaml_content.splitlines()
-    joined = "\n".join(lines)
 
-    # Match .ps1 or .sh in script lines, arguments, filePath, or commands
-    patterns = [
-        r'filePath:\s+([^\s]+\.ps1)',
-        r'filePath:\s+([^\s]+\.sh)',
-        r'[\.\s/\\]+([^\s]+\.ps1)',
-        r'[\.\s/\\]+([^\s]+\.sh)',
-        r'(pwsh\s+-File\s+([^\s]+\.ps1))',
-        r'(powershell\.exe\s+[^\s]+\.ps1)',
-        r'(bash\s+[^\s]+\.sh)'
-    ]
+    for line in lines:
+        line = line.strip()
+        if ".ps1" in line or ".sh" in line:
+            matches = re.findall(r'([^\s\'"=]+\.ps1)', line, re.IGNORECASE)
+            matches += re.findall(r'([^\s\'"=]+\.sh)', line, re.IGNORECASE)
+            for match in matches:
+                script_name = os.path.basename(match.strip().lower())
+                scripts.append(script_name)
 
-    for pattern in patterns:
-        matches = re.findall(pattern, joined, re.IGNORECASE)
-        for match in matches:
-            if isinstance(match, tuple):
-                match = match[-1]  # get the actual file name
-            script_name = os.path.basename(match.strip().lower())
-            scripts.append(script_name)
-
-    return list(set(scripts))  # de-duplicate
+    return list(set(scripts))
 
 def build_matrix(pipelines, all_scripts):
     matrix = {}
