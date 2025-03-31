@@ -65,60 +65,85 @@ def write_csv(matrix, pipelines, out_file):
             writer.writerow(row)
 
 def generate_html_from_csv(csv_file, html_file):
+    import csv
     with open(csv_file, "r") as f:
         reader = csv.reader(f)
         rows = list(reader)
+
+    headers = rows[0]
 
     with open(html_file, "w") as f:
         f.write("<html><head><title>Pipeline-Script Matrix</title>\n")
         f.write("""
         <style>
         body { font-family: Arial; padding: 20px; }
-        input { padding: 5px; width: 300px; margin-bottom: 15px; }
+        input, button { padding: 6px; font-size: 14px; margin-right: 10px; }
         table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 6px; text-align: center; }
         th { background-color: #f2f2f2; }
-        tr.hide { display: none; }
         td.tick { color: green; font-weight: bold; }
+        .hide { display: none; }
         </style>
         <script>
         function filterTable() {
             var input = document.getElementById("search").value.toLowerCase();
             var table = document.getElementById("matrix");
             var headers = table.rows[0].cells;
-            var colMatch = -1;
 
-            for (var i = 1; i < headers.length; i++) {
-                if (headers[i].textContent.toLowerCase().indexOf(input) > -1) {
-                    colMatch = i;
+            var showCol = -1;
+            for (var c = 1; c < headers.length; c++) {
+                if (headers[c].textContent.toLowerCase().indexOf(input) > -1) {
+                    showCol = c;
                     break;
                 }
             }
 
             for (var r = 1; r < table.rows.length; r++) {
                 var row = table.rows[r];
-                var rowHeader = row.cells[0].textContent.toLowerCase();
-                if (rowHeader.indexOf(input) > -1 || (colMatch > 0 && row.cells[colMatch].textContent.trim() === "✓")) {
-                    row.classList.remove("hide");
-                } else {
-                    row.classList.add("hide");
+                var scriptName = row.cells[0].textContent.toLowerCase();
+                var showRow = false;
+
+                if (scriptName.indexOf(input) > -1) {
+                    showRow = true;
+                } else if (showCol > 0 && row.cells[showCol].textContent.trim() === "✓") {
+                    showRow = true;
+                }
+
+                row.style.display = showRow ? "" : "none";
+            }
+
+            for (var c = 1; c < headers.length; c++) {
+                var show = (c === showCol || input === "") ? "" : "none";
+                headers[c].style.display = show;
+
+                for (var r = 1; r < table.rows.length; r++) {
+                    var cell = table.rows[r].cells[c];
+                    cell.style.display = show;
                 }
             }
+        }
+
+        function clearSearch() {
+            document.getElementById("search").value = "";
+            filterTable();
         }
         </script>
         """)
         f.write("</head><body>\n")
         f.write("<h2>Pipeline to Script Mapping</h2>\n")
-        f.write('<input type="text" id="search" onkeyup="filterTable()" placeholder="Search pipeline or script name...">\n')
+        f.write('<input type="text" id="search" onkeyup="filterTable()" placeholder="Search script or pipeline name...">')
+        f.write('<button onclick="clearSearch()">Clear</button><br><br>\n')
         f.write('<table id="matrix">\n')
 
         for i, row in enumerate(rows):
             f.write("<tr>")
-            for cell in row:
+            for j, cell in enumerate(row):
                 if i == 0:
                     f.write("<th>{0}</th>".format(cell))
                 else:
-                    if cell.strip() == "✓":
-                        f.write("<td class='tick'>&#10003;</td>")
+                    if j == 0:
+                        f.write("<td title='Script file'>{0}</td>".format(cell))
+                    elif cell.strip() == "✓":
+                        f.write("<td class='tick' title='Used in pipeline'>&#10003;</td>")
                     else:
                         f.write("<td>{0}</td>".format(cell))
             f.write("</tr>\n")
