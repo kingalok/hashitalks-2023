@@ -31,15 +31,23 @@ def find_postgres_yaml_files(base_path):
 def extract_script_references(yaml_content):
     scripts = []
     lines = yaml_content.splitlines()
+    found_bash_block = False
 
     for line in lines:
-        line = line.strip()
+        line = line.strip().lower()
+
+        if line.startswith("bash:"):
+            found_bash_block = True
+
         if ".ps1" in line or ".sh" in line:
             matches = re.findall(r'([^\s\'"=]+\.ps1)', line, re.IGNORECASE)
             matches += re.findall(r'([^\s\'"=]+\.sh)', line, re.IGNORECASE)
             for match in matches:
-                script_name = os.path.basename(match.strip().lower())
+                script_name = os.path.basename(match.strip())
                 scripts.append(script_name)
+
+    if found_bash_block and not scripts:
+        scripts.append("__inline-bash__")  # Special marker for bash commands with no .sh file
 
     return list(set(scripts))
 
