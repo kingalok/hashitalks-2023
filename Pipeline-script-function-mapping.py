@@ -31,13 +31,25 @@ def find_postgres_yaml_files(base_path):
 def extract_script_references(yaml_content):
     scripts = []
     lines = yaml_content.splitlines()
-    for line in lines:
-        for ext in SCRIPT_EXTENSIONS:
-            if ext in line:
-                match = re.search(r'([^\s\'"]+%s)' % ext, line)
-                if match:
-                    scripts.append(os.path.basename(match.group(1)).lower())
-    return list(set(scripts))
+    joined = "\n".join(lines)
+
+    # Match typical shell-style references
+    patterns = [
+        r'[\.\s/\\]+([^\s]+\.ps1)',
+        r'[\.\s/\\]+([^\s]+\.sh)',
+        r'(pwsh\s+-File\s+([^\s]+\.ps1))',
+        r'(powershell\.exe\s+[^\s]+\.ps1)',
+        r'(bash\s+[^\s]+\.sh)'
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, joined, re.IGNORECASE)
+        for match in matches:
+            if isinstance(match, tuple):
+                match = match[-1]  # get actual file path
+            scripts.append(os.path.basename(match.strip().lower()))
+
+    return list(set(scripts))  # remove duplicates
 
 def build_matrix(pipelines, all_scripts):
     matrix = {}
