@@ -46,22 +46,20 @@ def extract_script_references(yaml_content):
     found_bash_block = False
 
     for line in lines:
-        clean = line.strip().lower()
+        line_lower = line.lower()
 
-        # Match lines like "- bash:", "  - bash:", etc.
-        if "- bash:" in clean or clean.startswith("bash:"):
+        if "bash:" in line_lower:
             found_bash_block = True
 
-        # Match .ps1 and .sh references
-        if ".ps1" in clean or ".sh" in clean:
-            matches = re.findall(r'([^\s\'"=]+\.ps1)', clean, re.IGNORECASE)
-            matches += re.findall(r'([^\s\'"=]+\.sh)', clean, re.IGNORECASE)
+        if ".ps1" in line_lower or ".sh" in line_lower:
+            matches = re.findall(r'([^\s\'"=]+\.ps1)', line_lower)
+            matches += re.findall(r'([^\s\'"=]+\.sh)', line_lower)
             for match in matches:
                 script_name = os.path.basename(match.strip())
                 scripts.append(script_name)
 
     if found_bash_block and not scripts:
-        scripts.append("__inline-bash__")
+        scripts.append("__bash__")
 
     return list(set(scripts))
 
