@@ -65,8 +65,8 @@ def write_csv(matrix, pipelines, out_file):
             writer.writerow(row)
 
 def generate_html_from_csv(csv_file, html_file):
-    import csv
     with open(csv_file, "r") as f:
+        import csv
         reader = csv.reader(f)
         rows = list(reader)
 
@@ -77,7 +77,7 @@ def generate_html_from_csv(csv_file, html_file):
         f.write("""
         <style>
         body { font-family: Arial; padding: 20px; }
-        input, button { padding: 6px; font-size: 14px; margin-right: 10px; }
+        input { padding: 6px; width: 300px; margin-bottom: 15px; font-size: 14px; }
         table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 6px; text-align: center; }
         th { background-color: #f2f2f2; }
         td.tick { color: green; font-weight: bold; }
@@ -121,17 +121,11 @@ def generate_html_from_csv(csv_file, html_file):
                 }
             }
         }
-
-        function clearSearch() {
-            document.getElementById("search").value = "";
-            filterTable();
-        }
         </script>
         """)
         f.write("</head><body>\n")
         f.write("<h2>Pipeline to Script Mapping</h2>\n")
-        f.write('<input type="text" id="search" onkeyup="filterTable()" placeholder="Search script or pipeline name...">')
-        f.write('<button onclick="clearSearch()">Clear</button><br><br>\n')
+        f.write('<input type="text" id="search" onkeyup="filterTable()" placeholder="Search script or pipeline name...">\n')
         f.write('<table id="matrix">\n')
 
         for i, row in enumerate(rows):
@@ -140,16 +134,14 @@ def generate_html_from_csv(csv_file, html_file):
                 if i == 0:
                     f.write("<th>{0}</th>".format(cell))
                 else:
-                    if j == 0:
-                        f.write("<td title='Script file'>{0}</td>".format(cell))
-                    elif cell.strip() == "✓":
-                        f.write("<td class='tick' title='Used in pipeline'>&#10003;</td>")
+                    if cell.strip() == "✓":
+                        f.write("<td class='tick'>&#10003;</td>")
                     else:
                         f.write("<td>{0}</td>".format(cell))
             f.write("</tr>\n")
 
         f.write("</table>\n</body></html>")
-
+        
 if __name__ == "__main__":
     BASE = "."
 
