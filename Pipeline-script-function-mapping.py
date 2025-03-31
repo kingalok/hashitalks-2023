@@ -65,8 +65,8 @@ def write_csv(matrix, pipelines, out_file):
             writer.writerow(row)
 
 def generate_html_from_csv(csv_file, html_file):
+    import csv
     with open(csv_file, "r") as f:
-        import csv
         reader = csv.reader(f)
         rows = list(reader)
 
@@ -89,22 +89,30 @@ def generate_html_from_csv(csv_file, html_file):
             var table = document.getElementById("matrix");
             var headers = table.rows[0].cells;
 
-            var showCol = -1;
+            var matchCol = -1;
             for (var c = 1; c < headers.length; c++) {
                 if (headers[c].textContent.toLowerCase().indexOf(input) > -1) {
-                    showCol = c;
+                    matchCol = c;
+                    break;
+                }
+            }
+
+            var matchRow = -1;
+            for (var r = 1; r < table.rows.length; r++) {
+                var rowHeader = table.rows[r].cells[0].textContent.toLowerCase();
+                if (rowHeader.indexOf(input) > -1) {
+                    matchRow = r;
                     break;
                 }
             }
 
             for (var r = 1; r < table.rows.length; r++) {
                 var row = table.rows[r];
-                var scriptName = row.cells[0].textContent.toLowerCase();
                 var showRow = false;
 
-                if (scriptName.indexOf(input) > -1) {
+                if (matchRow === r) {
                     showRow = true;
-                } else if (showCol > 0 && row.cells[showCol].textContent.trim() === "✓") {
+                } else if (matchCol > 0 && row.cells[matchCol].textContent.trim() === "✓") {
                     showRow = true;
                 }
 
@@ -112,12 +120,25 @@ def generate_html_from_csv(csv_file, html_file):
             }
 
             for (var c = 1; c < headers.length; c++) {
-                var show = (c === showCol || input === "") ? "" : "none";
-                headers[c].style.display = show;
+                var show = "";
+                if (matchCol > 0 && c === matchCol) {
+                    show = "";
+                } else if (matchRow > 0) {
+                    var cell = table.rows[matchRow].cells[c];
+                    if (cell.textContent.trim() === "✓") {
+                        show = "";
+                    } else {
+                        show = "none";
+                    }
+                } else if (input === "") {
+                    show = "";
+                } else {
+                    show = "none";
+                }
 
+                headers[c].style.display = show;
                 for (var r = 1; r < table.rows.length; r++) {
-                    var cell = table.rows[r].cells[c];
-                    cell.style.display = show;
+                    table.rows[r].cells[c].style.display = show;
                 }
             }
         }
@@ -140,7 +161,7 @@ def generate_html_from_csv(csv_file, html_file):
                         f.write("<td>{0}</td>".format(cell))
             f.write("</tr>\n")
 
-        f.write("</table>\n</body></html>")
+        f.write("</table>\n</body></html>")   
         
 if __name__ == "__main__":
     BASE = "."
