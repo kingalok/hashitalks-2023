@@ -67,10 +67,45 @@ def generate_html_from_csv(csv_file, html_file):
 
     with open(html_file, "w") as f:
         f.write("<html><head><title>Pipeline-Script Matrix</title>\n")
-        f.write("<style>table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; text-align: center; } th { background-color: #f2f2f2; }</style>\n")
+        f.write("""
+        <style>
+        body { font-family: Arial; padding: 20px; }
+        input { padding: 5px; width: 300px; margin-bottom: 15px; }
+        table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 6px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        tr.hide { display: none; }
+        td.tick { color: green; font-weight: bold; }
+        </style>
+        <script>
+        function filterTable() {
+            var input = document.getElementById("search").value.toLowerCase();
+            var table = document.getElementById("matrix");
+            var headers = table.rows[0].cells;
+            var colMatch = -1;
+
+            for (var i = 1; i < headers.length; i++) {
+                if (headers[i].textContent.toLowerCase().indexOf(input) > -1) {
+                    colMatch = i;
+                    break;
+                }
+            }
+
+            for (var r = 1; r < table.rows.length; r++) {
+                var row = table.rows[r];
+                var rowHeader = row.cells[0].textContent.toLowerCase();
+                if (rowHeader.indexOf(input) > -1 || (colMatch > 0 && row.cells[colMatch].textContent.trim() === "✓")) {
+                    row.classList.remove("hide");
+                } else {
+                    row.classList.add("hide");
+                }
+            }
+        }
+        </script>
+        """)
         f.write("</head><body>\n")
         f.write("<h2>Pipeline to Script Mapping</h2>\n")
-        f.write("<table>\n")
+        f.write('<input type="text" id="search" onkeyup="filterTable()" placeholder="Search pipeline or script name...">\n')
+        f.write('<table id="matrix">\n')
 
         for i, row in enumerate(rows):
             f.write("<tr>")
@@ -79,7 +114,7 @@ def generate_html_from_csv(csv_file, html_file):
                     f.write("<th>{0}</th>".format(cell))
                 else:
                     if cell.strip() == "✓":
-                        f.write("<td style='color: green; font-weight: bold;'>&#10003;</td>")
+                        f.write("<td class='tick'>&#10003;</td>")
                     else:
                         f.write("<td>{0}</td>".format(cell))
             f.write("</tr>\n")
