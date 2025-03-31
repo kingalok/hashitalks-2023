@@ -59,7 +59,7 @@ def extract_script_references(yaml_content):
                 scripts.append(script_name)
 
     if found_bash_block and not scripts:
-        scripts.append("__bash__")
+        scripts.append("__inline-bash__")
 
     return list(set(scripts))
 
