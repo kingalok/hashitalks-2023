@@ -33,8 +33,10 @@ def extract_script_references(yaml_content):
     lines = yaml_content.splitlines()
     joined = "\n".join(lines)
 
-    # Match typical shell-style references
+    # Match .ps1 or .sh in script lines, arguments, filePath, or commands
     patterns = [
+        r'filePath:\s+([^\s]+\.ps1)',
+        r'filePath:\s+([^\s]+\.sh)',
         r'[\.\s/\\]+([^\s]+\.ps1)',
         r'[\.\s/\\]+([^\s]+\.sh)',
         r'(pwsh\s+-File\s+([^\s]+\.ps1))',
@@ -46,10 +48,11 @@ def extract_script_references(yaml_content):
         matches = re.findall(pattern, joined, re.IGNORECASE)
         for match in matches:
             if isinstance(match, tuple):
-                match = match[-1]  # get actual file path
-            scripts.append(os.path.basename(match.strip().lower()))
+                match = match[-1]  # get the actual file name
+            script_name = os.path.basename(match.strip().lower())
+            scripts.append(script_name)
 
-    return list(set(scripts))  # remove duplicates
+    return list(set(scripts))  # de-duplicate
 
 def build_matrix(pipelines, all_scripts):
     matrix = {}
