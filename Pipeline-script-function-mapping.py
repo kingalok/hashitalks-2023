@@ -48,9 +48,11 @@ def extract_script_references(yaml_content):
     for line in lines:
         line_lower = line.lower()
 
+        # ✅ Always detect inline bash use, no matter where it appears in the line
         if "bash:" in line_lower:
             found_bash_block = True
 
+        # ✅ Match any .ps1 or .sh files mentioned anywhere
         if ".ps1" in line_lower or ".sh" in line_lower:
             matches = re.findall(r'([^\s\'"=]+\.ps1)', line_lower)
             matches += re.findall(r'([^\s\'"=]+\.sh)', line_lower)
@@ -58,6 +60,7 @@ def extract_script_references(yaml_content):
                 script_name = os.path.basename(match.strip())
                 scripts.append(script_name)
 
+    # ✅ If bash block found, and no scripts mentioned, add marker
     if found_bash_block and not scripts:
         scripts.append("__inline-bash__")
 
