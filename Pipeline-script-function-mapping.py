@@ -14,18 +14,30 @@ def find_all_scripts(base_path):
     return script_map
 
 def find_postgres_yaml_files(base_path):
+    EXCEPTION_PIPELINES = ["ac5-report.yaml", "rolesync.yaml"]
     matched = []
+
     for root, dirs, files in os.walk(base_path):
         for file in files:
-            if file.endswith(".yaml") and "postgres" in file.lower():
-                full_path = os.path.join(root, file)
-                try:
-                    with open(full_path, "r") as f:
-                        content = f.read().lower()
-                        if "postgres" in content:
-                            matched.append((file, full_path, content))
-                except Exception as e:
-                    print("Could not read YAML file: {0}".format(full_path))
+            if not file.endswith(".yaml"):
+                continue
+
+            full_path = os.path.join(root, file)
+
+            include = False
+            lower_file = file.lower()
+
+            if "postgres" in lower_file or file in EXCEPTION_PIPELINES:
+                include = True
+
+            try:
+                with open(full_path, "r") as f:
+                    content = f.read().lower()
+                    if "postgres" in content or file in EXCEPTION_PIPELINES:
+                        matched.append((file, full_path, content))
+            except Exception as e:
+                print("Could not read YAML file: {0}".format(full_path))
+
     return matched
 
 def extract_script_references(yaml_content):
